@@ -10,8 +10,3 @@ extern unsigned long stopPump();
 extern void updateUIElemsOff();
 
 extern void updateUIElemsOn();
-
-extern void updateUIElems10sOff();
-
-extern void updateUIElems10sOn();
-

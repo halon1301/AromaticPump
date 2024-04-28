@@ -8,13 +8,11 @@
 #include <pumpAction.h>
 #include <AXP192.h>
 
-
-
 const int displayHorizonal = 320;
 const int displayVertical = 240;
 
 const int remoteUserPin = 23; // GPIO pin the remote is sending a signal to
-const int remoteAdminPin = 38;
+const int remoteAdminPin = 1;
 int remoteUserStatus = 0;
 int remoteAdminStatus = 0;
 const unsigned long allowedRunTime = 30; // This is used to reset the runtimer and set the runtimer
@@ -38,12 +36,6 @@ unsigned long currentTime;
 // Debugging vars
 bool doPrintMe = false;
 bool doPrintMe2 = false;
-
-/* Routines:
- * 0: standard 30s run time then off
- * 1: 10s on/10s off run until reset
-*/
-int routine = 0;
 
 
 static lv_disp_draw_buf_t draw_buf; // Draw buffer
@@ -304,15 +296,9 @@ void loop() {
 
      */
     if (!runstate) {
-        if (routine == 0) {
-            countdownTimer = 30;
-            startTimeCounter = 0;
-            lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
-        } else if (routine == 1) {
-            countdownTimer = 10;
-            startTimeCounter = 0;
-            lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
-        }
+        countdownTimer = 30;
+        startTimeCounter = 0;
+        lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
     }
 
     if (startTimeCounter != 0) {
@@ -326,13 +312,6 @@ void loop() {
                 Serial.print("countdownTimer: ");
                 Serial.println(countdownTimer);
             } else {
-                if (routine == 0) {
-                    lv_label_set_text(objects.lbl_time_cnt, "30");
-                    countdownTimer = 30;
-                } else if (routine == 1) {
-                    lv_label_set_text(objects.lbl_time_cnt, "10");
-                    countdownTimer = 10;
-                }
                 sleepStartTime = stopPump();
                 lv_label_set_text(objects.lbl_state_txt, "Off");
                 lv_label_set_text(objects.lbl_btn_on_off, "On");

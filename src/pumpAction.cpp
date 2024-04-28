@@ -24,8 +24,6 @@ unsigned long stopPump() {
     return loc_sleepStartTime;
 }
 
-
-
 void updateUIElemsOff() {
     lv_label_set_text(objects.lbl_state_txt, "Off");
     lv_label_set_text(objects.lbl_btn_on_off, "On");
@@ -35,17 +33,3 @@ void updateUIElemsOn() {
     lv_label_set_text(objects.lbl_state_txt, "Run");
     lv_label_set_text(objects.lbl_btn_on_off, "Off");
 }
-
-void updateUIElems10sOff() {
-    lv_label_set_text(objects.lbl_state_txt, "Off");
-    lv_label_set_text(objects.lbl_btn_on_off, "On");
-    lv_label_set_text(objects.lbl_time_cnt, "10");
-    lv_label_set_text(objects.lbl_btn_ten_on_off, "10on/10off");
-}
-
-void updateUIElems10sOn() {
-    lv_label_set_text(objects.lbl_state_txt, "Off");
-    lv_label_set_text(objects.lbl_btn_on_off, "On");
-    lv_label_set_text(objects.lbl_btn_ten_on_off, "30s");
-}
-

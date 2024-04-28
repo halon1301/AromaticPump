@@ -11,10 +11,8 @@ typedef struct _objects_t {
     lv_obj_t *main;
     lv_obj_t *btn_override;
     lv_obj_t *btn_run_state;
-    lv_obj_t *btn_ten_on_off;
     lv_obj_t *lbl_btn_on_off;
     lv_obj_t *lbl_btn_override;
-    lv_obj_t *lbl_btn_ten_on_off;
     lv_obj_t *lbl_override_use;
     lv_obj_t *lbl_override_use_cnt;
     lv_obj_t *lbl_state;
