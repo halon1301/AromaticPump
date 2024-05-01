@@ -7,14 +7,18 @@
 #include "main.h"
 #include <pumpAction.h>
 #include <AXP192.h>
+#include "remote.h"
 
 const int displayHorizonal = 320;
 const int displayVertical = 240;
+
 
 const int remoteUserPin = 23; // GPIO pin the remote is sending a signal to
 const int remoteAdminPin = 1;
 int remoteUserStatus = 0;
 int remoteAdminStatus = 0;
+
+
 const unsigned long allowedRunTime = 30; // This is used to reset the runtimer and set the runtimer
 unsigned long runtimer = allowedRunTime; // 30 seconds to run (Adjusted by the admin runtimer)
 unsigned long minSleepTimer = 30; // low end of the sleep timer between runs (if admin override hasn't been used)
@@ -120,87 +124,30 @@ void init_touch_driver() {
     lv_indev_t * my_indev = lv_indev_drv_register(&indev_drv);  // register
 }
 
-void exampleTabview(void) {
-    lv_obj_t *tabview = lv_btn_create(lv_scr_act());
-    tabview = lv_tabview_create(lv_scr_act(), LV_DIR_TOP, 50);
-    lv_obj_t * tab1 = lv_tabview_add_tab(tabview, "Tab 1");
-    lv_obj_t * tab2 = lv_tabview_add_tab(tabview, "Tab 2");
-    lv_obj_t * tab3 = lv_tabview_add_tab(tabview, "Tab 3");
-    lv_obj_t * label = lv_label_create(tab1);
-    lv_label_set_text(label, "This the first tab\n\n"
-                             "If the content\n"
-                             "of a tab\n"
-                             "becomes too\n"
-                             "longer\n"
-                             "than the\n"
-                             "container\n"
-                             "then it\n"
-                             "automatically\n"
-                             "becomes\n"
-                             "scrollable.\n"
-                             "\n"
-                             "\n"
-                             "\n"
-                             "Can you see it?");
-    label = lv_label_create(tab2);
-    lv_label_set_text(label, "Second tab");
-
-    label = lv_label_create(tab3);
-    lv_label_set_text(label, "Third tab");
-
-    lv_obj_scroll_to_view_recursive(label, LV_ANIM_ON);
-}
-
 void setup() {
     M5.begin();
     M5.Axp.SetBusPowerMode(1);
     tft_lv_initialization();
     init_disp_driver();
     init_touch_driver();
-    if (!doPrintMe) {
-        Serial.println(millis());
-        doPrintMe = true;
-    }
     ui_init();
-
+    Serial.println("Setup Complete.");
 }
 
 void loop() {
-    if (!doPrintMe2) {
-        Serial.println(millis());
-        doPrintMe2 = true;
-    }
-
-
     lv_task_handler();
     currentTime = millis();
     remoteUserStatus = digitalRead(remoteUserPin);
     remoteAdminStatus = digitalRead(remoteAdminPin);
-    Serial.print("CurrentTime: ");
-    Serial.print(currentTime);
-    Serial.print(" - StartTime: ");
-    Serial.println(startTime);
 
-    /*if (currentTime - startTime >= runtimer * 1000 and runstate) {
-        Serial.print("runtime exceeded, adminUse under max, no sleep required  - Current Time");
-        Serial.print(currentTime);
-        Serial.print(" StartTime: ");
-        Serial.println(startTime);
-        Serial.print("Math: ");
-        Serial.print(currentTime - startTime);
-        Serial.print(" >= ");
-        Serial.println(runtimer * 1000);
-        Serial.print("runstate-pre: ");
-        Serial.print(runstate);
-        Serial.print(" - Admin use: ");
-        Serial.println(adminUse);
-        sleepStartTime = stopPump();
-        Serial.print("runstate-post: ");
-        Serial.println(runstate);
-        updateUIElemsOff();
-        runtimer = allowedRunTime; // timer can run again
-        runAllowed = true;
-    }*/
+    if (runAllowed) {
+        if (remoteUserStatus == 1) {
+            startTime = runPump(1);
+        } else if (remoteAdminStatus == 1) {
+            startTime = runPump(2);
+            adminBtnUse();
+        }
+    }
 
     /*
      * Logic:
@@ -210,9 +157,6 @@ void loop() {
     */
     if (adminUse == adminMax and currentTime - startTime >= runtimer * 1000 and runstate and runAllowed) {
         Serial.print("runtime exceeded, adminUse max, sleeping for max sleep time- ");
-        Serial.print(currentTime);
-        Serial.print(" - Admin use: ");
-        Serial.println(adminUse);
         sleepStartTime = stopPump();
         updateUIElemsOff();
         startTime = 0;
@@ -221,20 +165,7 @@ void loop() {
         runAllowed = false;
     } else if (adminUse < adminMax and currentTime - startTime >= runtimer * 1000 and runstate and runAllowed) {
         Serial.print("runtime exceeded, adminUse under max, no sleep required  - Current Time");
-        Serial.print(currentTime);
-        Serial.print(" StartTime: ");
-        Serial.println(startTime);
-        Serial.print("Math: ");
-        Serial.print(currentTime - startTime);
-        Serial.print(" >= ");
-        Serial.println(runtimer * 1000);
-        Serial.print("runstate-pre: ");
-        Serial.print(runstate);
-        Serial.print(" - Admin use: ");
-        Serial.println(adminUse);
         sleepStartTime = stopPump();
-        Serial.print("runstate-post: ");
-        Serial.println(runstate);
         updateUIElemsOff();
         runtimer = allowedRunTime; // timer can run again
         runAllowed = true;
@@ -264,37 +195,7 @@ void loop() {
         //}
     }
 
-    // Don't do any of the control state stuff yet.
-    /*if(runAllowed) {
-        if (remoteUserStatus == 1 and !runstate) {
-            startTime = runPump();
-            Serial.println("user on");
-            lv_label_set_text(objects.labelArea1, "Run");
-            delay(1000);
-        } else if (remoteUserStatus == 1 and runstate) {
-            sleepStartTime = stopPump();
-            sleepStartTime = 0;
-            delay(1000); // slow down detection on press
-        } else if (remoteAdminStatus == 1 and runstate and adminUse < adminMax) {
-            runtimer = runtimer + adminRuntimer;
-            adminUse++;
-            Serial.print("Admin use: ");
-            Serial.println(adminUse);
-            delay(1000); // slow down the detection after this, because otherwise the button gets detected
-        } else if (remoteAdminStatus == 1 and adminUse < adminMax and !runstate) {
-            adminUse++;
-            startTime = runPump();
-            Serial.println("AdminUse but no time adjustment");
-            delay(1000); // slow down detection
-        } else if (remoteAdminStatus == 1 and !runstate) {
-            startTime = runPump();
-            Serial.println("Admin on");
-            lv_label_set_text(objects.labelArea1, "Run");
-            delay(1000); // slow down detection when it's an admin use
-        }
-    }
 
-     */
     if (!runstate) {
         countdownTimer = 30;
         startTimeCounter = 0;
@@ -306,11 +207,6 @@ void loop() {
             if (countdownTimer != 0) {
                 countdownTimer--;
                 lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
-                startTimeCounter = currentTime;
-                Serial.print("startTimeCounter: ");
-                Serial.println(startTimeCounter);
-                Serial.print("countdownTimer: ");
-                Serial.println(countdownTimer);
             } else {
                 sleepStartTime = stopPump();
                 lv_label_set_text(objects.lbl_state_txt, "Off");

@@ -13,6 +13,10 @@ void ui_tick();
 
 void loadScreen(enum ScreensEnum screenId);
 
+void updateUIElemsOff();
+
+void updateUIElemsOn(int stateMap);
+
 #ifdef __cplusplus
 }
 #endif

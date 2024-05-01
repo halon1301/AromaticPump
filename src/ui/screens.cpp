@@ -8,6 +8,7 @@
 #include <pumpAction.h>
 #include <Arduino.h>
 #include "main.h"
+#include <remote.h>
 
 objects_t objects;
 lv_obj_t *tick_value_change_obj;
@@ -23,12 +24,22 @@ static void on_btnRunStatePress(lv_event_t *e) {
             sleepStartTime = stopPump();
             startTimeCounter = 0;
         } else {
-            updateUIElemsOn();
+            updateUIElemsOn(0);
             Serial.println("runstate true");
-            startTime = runPump();
+            startTime = runPump(0);
             startTimeCounter = startTime;
         }
 
+    }
+}
+
+static void on_plusTenPress(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    if (event == LV_EVENT_PRESSED) {
+        if (runstate) {
+            countdownTimer = countdownTimer + 10;
+            adminBtnUse();
+        }
     }
 }
 
@@ -45,8 +56,8 @@ void create_screen_main() {
             // btn_runState
             lv_obj_t *obj = lv_btn_create(parent_obj);
             objects.btn_run_state = obj;
-            lv_obj_set_pos(obj, 23, 142);
-            lv_obj_set_size(obj, 182, 92);
+            lv_obj_set_pos(obj, 6, 142);
+            lv_obj_set_size(obj, 199, 92);
             lv_obj_add_event_cb(obj, on_btnRunStatePress, LV_EVENT_ALL, 0);
             lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
             lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
@@ -56,7 +67,7 @@ void create_screen_main() {
             // lbl_btnOnOff
             lv_obj_t *obj = lv_label_create(parent_obj);
             objects.lbl_btn_on_off = obj;
-            lv_obj_set_pos(obj, 105, 184);
+            lv_obj_set_pos(obj, 96, 184);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_label_set_text(obj, "off");
         }

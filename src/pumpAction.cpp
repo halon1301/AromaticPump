@@ -4,7 +4,7 @@
 #include "ui/ui.h"
 
 
-unsigned long runPump() {
+unsigned long runPump(int stateMap) {
     unsigned long loc_startTime = millis();
     runstate = true;
     Serial.print("startTime: ");
@@ -12,6 +12,7 @@ unsigned long runPump() {
     digitalWrite(motorPin1, HIGH);
     analogWrite(motorPin2, 128);
     Serial.println("RUN");
+    updateUIElemsOn(stateMap);
     return loc_startTime;
 }
 
@@ -24,12 +25,6 @@ unsigned long stopPump() {
     return loc_sleepStartTime;
 }
 
-void updateUIElemsOff() {
-    lv_label_set_text(objects.lbl_state_txt, "Off");
-    lv_label_set_text(objects.lbl_btn_on_off, "On");
-}
 
-void updateUIElemsOn() {
-    lv_label_set_text(objects.lbl_state_txt, "Run");
-    lv_label_set_text(objects.lbl_btn_on_off, "Off");
-}
+
+

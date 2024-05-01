@@ -33,3 +33,25 @@ void ui_init() {
 void ui_tick() {
     tick_screen(currentScreen);
 }
+
+void updateUIElemsOff() {
+    lv_label_set_text(objects.lbl_state_txt, "Off");
+    lv_label_set_text(objects.lbl_btn_on_off, "On");
+}
+
+void updateUIElemsOn(int stateMap) {
+    switch (stateMap) {
+        case 0:
+            lv_label_set_text(objects.lbl_state_txt, "On");
+            break;
+        case 1:
+            lv_label_set_text(objects.lbl_state_txt, "User");
+            break;
+        case 2:
+            lv_label_set_text(objects.lbl_state_txt, "Adm");
+            break;
+        default:
+            lv_label_set_text(objects.lbl_state_txt, "On");
+    }
+    lv_label_set_text(objects.lbl_btn_on_off, "Off");
+}
