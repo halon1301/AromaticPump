@@ -18,24 +18,27 @@ unsigned long startTimeCounter = 0;
 static void on_btnRunStatePress(lv_event_t *e) {
     lv_event_code_t event = lv_event_get_code(e);
     if (event == LV_EVENT_PRESSED) {
-        if (runstate) {
-            Serial.println("off");
-            updateUIElemsOff();
-            sleepStartTime = stopPump();
-        } else {
-            updateUIElemsOn(0);
-            Serial.println("runstate true");
-            startTime = runPump(0);
+        if (runAllowed) {
+            if (runstate) {
+                Serial.println("off");
+                updateUIElemsOff();
+                sleepStartTime = stopPump();
+            } else {
+                updateUIElemsOn(0);
+                Serial.println("runstate true");
+                startTime = runPump(0);
+            }
         }
-
     }
 }
 
 static void on_plusTenPress(lv_event_t *e) {
     lv_event_code_t event = lv_event_get_code(e);
     if (event == LV_EVENT_PRESSED) {
-        if (runstate and adminUse < adminMax) {
-            adminBtnUse();
+        if (runAllowed) {
+            if (runstate and adminUse < adminMax) {
+                adminBtnUse();
+            }
         }
     }
 }

@@ -203,6 +203,7 @@ void loop() {
         adminUse = 0;
         runtimer = allowedRunTime;
         runAllowed = true;
+        resetUIElems();
     } else if (currentTime - sleepStartTime >= maxSleepTimer * 1000 and !runstate and runAllowed) {
         startTime = 0;
         sleepStartTime = 0;

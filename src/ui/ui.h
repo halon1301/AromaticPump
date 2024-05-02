@@ -17,6 +17,8 @@ void updateUIElemsOff();
 
 void updateUIElemsOn(int stateMap);
 
+void resetUIElems();
+
 #ifdef __cplusplus
 }
 #endif

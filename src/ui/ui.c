@@ -55,3 +55,9 @@ void updateUIElemsOn(int stateMap) {
     }
     lv_label_set_text(objects.lbl_btn_on_off, "Off");
 }
+
+void resetUIElems() {
+    lv_label_set_text(objects.lbl_state_txt, "Off");
+    lv_label_set_text(objects.lbl_btn_on_off, "On");
+    lv_label_set_text(objects.lbl_override_use_cnt, "0");
+}
