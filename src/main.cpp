@@ -126,7 +126,7 @@ void init_touch_driver() {
 
 void setup() {
     M5.begin();
-    M5.Axp.SetBusPowerMode(1);
+    //M5.Axp.SetBusPowerMode(1);+
     pinMode(remoteUserPin, INPUT);
     pinMode(remoteAdminPin, INPUT);
     pinMode(motorPin1, OUTPUT);
@@ -149,10 +149,17 @@ void loop() {
             if (remoteUserStatus == 1) {
                 sleepStartTime = stopPump();
                 delay(1000);
+            } else if (remoteAdminStatus == 1 and adminUse < adminMax) {
+                // We add 10s to a max of an additional 30s
+                adminBtnUse();
+                delay(1000);
             }
         } else {
             if (remoteUserStatus == 1) {
                 startTime = runPump(1);
+                delay(1000);
+            } else if (remoteAdminStatus == 1) {
+                startTime = runPump(2);
                 delay(1000);
             }
 
