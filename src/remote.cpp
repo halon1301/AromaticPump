@@ -11,7 +11,6 @@
 void remote_user_control() {
     startTime = runPump(1);
     Serial.println("user on");
-
 }
 
 void remote_admin_control() {
@@ -21,7 +20,7 @@ void remote_admin_control() {
 
 void adminBtnUse() {
     if (runstate and adminUse < adminMax) {
-        runtimer = runtimer + adminRunTimer;
+        //runtimer = runtimer + adminRunTimer;
         countdownTimer = countdownTimer + 10;
         adminUse++;
         delay(1000);

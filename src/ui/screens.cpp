@@ -22,12 +22,10 @@ static void on_btnRunStatePress(lv_event_t *e) {
             Serial.println("off");
             updateUIElemsOff();
             sleepStartTime = stopPump();
-            startTimeCounter = 0;
         } else {
             updateUIElemsOn(0);
             Serial.println("runstate true");
             startTime = runPump(0);
-            startTimeCounter = startTime;
         }
 
     }

@@ -13,8 +13,8 @@ const int displayHorizonal = 320;
 const int displayVertical = 240;
 
 
-const int remoteUserPin = 23; // GPIO pin the remote is sending a signal to
-const int remoteAdminPin = 1;
+const int remoteUserPin = 25; // GPIO pin the remote is sending a signal to
+const int remoteAdminPin = 26;
 int remoteUserStatus = 0;
 int remoteAdminStatus = 0;
 
@@ -127,6 +127,10 @@ void init_touch_driver() {
 void setup() {
     M5.begin();
     M5.Axp.SetBusPowerMode(1);
+    pinMode(remoteUserPin, INPUT);
+    pinMode(remoteAdminPin, INPUT);
+    pinMode(motorPin1, OUTPUT);
+    pinMode(motorPin2, OUTPUT);
     tft_lv_initialization();
     init_disp_driver();
     init_touch_driver();
@@ -141,12 +145,21 @@ void loop() {
     remoteAdminStatus = digitalRead(remoteAdminPin);
 
     if (runAllowed) {
-        if (remoteUserStatus == 1) {
-            startTime = runPump(1);
-        } else if (remoteAdminStatus == 1) {
+        if (runstate) {
+            if (remoteUserStatus == 1) {
+                sleepStartTime = stopPump();
+                delay(1000);
+            }
+        } else {
+            if (remoteUserStatus == 1) {
+                startTime = runPump(1);
+                delay(1000);
+            }
+
+        } /*else if (remoteAdminStatus == 1) {
             startTime = runPump(2);
             adminBtnUse();
-        }
+        }*/
     }
 
     /*
@@ -207,6 +220,7 @@ void loop() {
             if (countdownTimer != 0) {
                 countdownTimer--;
                 lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
+                startTimeCounter = currentTime;
             } else {
                 sleepStartTime = stopPump();
                 lv_label_set_text(objects.lbl_state_txt, "Off");

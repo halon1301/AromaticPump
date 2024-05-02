@@ -10,9 +10,10 @@ unsigned long runPump(int stateMap) {
     Serial.print("startTime: ");
     Serial.println(loc_startTime);
     digitalWrite(motorPin1, HIGH);
-    analogWrite(motorPin2, 128);
+    analogWrite(motorPin2, 64);
     Serial.println("RUN");
     updateUIElemsOn(stateMap);
+    startTimeCounter = loc_startTime;
     return loc_startTime;
 }
 
@@ -22,6 +23,8 @@ unsigned long stopPump() {
     digitalWrite(motorPin1, LOW);
     analogWrite(motorPin2, 0);
     Serial.println("STOP");
+    startTimeCounter = 0;
+    updateUIElemsOff();
     return loc_sleepStartTime;
 }
 
