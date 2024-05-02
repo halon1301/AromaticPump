@@ -48,7 +48,7 @@ void updateUIElemsOn(int stateMap) {
             lv_label_set_text(objects.lbl_state_txt, "User");
             break;
         case 2:
-            lv_label_set_text(objects.lbl_state_txt, "Adm");
+            lv_label_set_text(objects.lbl_state_txt, "Dm");
             break;
         default:
             lv_label_set_text(objects.lbl_state_txt, "On");

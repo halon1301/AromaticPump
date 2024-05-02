@@ -19,19 +19,10 @@ void remote_admin_control() {
 }
 
 void adminBtnUse() {
-    if (runstate and adminUse < adminMax) {
-        //runtimer = runtimer + adminRunTimer;
-        countdownTimer = countdownTimer + 10;
-        adminUse++;
-        delay(1000);
-    } else if (adminUse < adminMax and !runstate) {
-        adminUse ++;
-        startTime = runPump(2);
-        delay(1000);
-    } else if (!runstate) {
-        startTime = runPump(2);
-    }
-
+    adminUse++;
+    countdownTimer = countdownTimer + 10;
+    runtimer = runtimer + adminRuntimer;
+    lv_label_set_text_fmt(objects.lbl_override_use_cnt, "%d", adminUse);
 }
 
 

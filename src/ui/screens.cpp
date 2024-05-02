@@ -34,8 +34,7 @@ static void on_btnRunStatePress(lv_event_t *e) {
 static void on_plusTenPress(lv_event_t *e) {
     lv_event_code_t event = lv_event_get_code(e);
     if (event == LV_EVENT_PRESSED) {
-        if (runstate) {
-            countdownTimer = countdownTimer + 10;
+        if (runstate and adminUse < adminMax) {
             adminBtnUse();
         }
     }
@@ -139,6 +138,7 @@ void create_screen_main() {
             objects.btn_override = obj;
             lv_obj_set_pos(obj, 221, 184);
             lv_obj_set_size(obj, 79, 50);
+            lv_obj_add_event_cb(obj, on_plusTenPress, LV_EVENT_ALL, 0);
             lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
             lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
         }
@@ -157,7 +157,7 @@ void create_screen_main() {
             objects.lbl_override_use_cnt = obj;
             lv_obj_set_pos(obj, 257, 156);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_label_set_text(obj, "3");
+            lv_label_set_text(obj, "0");
             lv_obj_set_style_text_color(obj, lv_color_hex(0xff00ffea), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
