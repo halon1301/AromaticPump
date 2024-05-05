@@ -1,4 +1,4 @@
-#include <M5Core2.h>
+#include "M5Unified.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include <Wire.h>
@@ -6,15 +6,16 @@
 #include "ui/ui.h"
 #include "main.h"
 #include <pumpAction.h>
-#include <AXP192.h>
+//#include <AXP192.h>
 #include "remote.h"
+#include <esp_timer.h>
 
 const int displayHorizonal = 320;
 const int displayVertical = 240;
 
 
-const int remoteUserPin = 25; // GPIO pin the remote is sending a signal to
-const int remoteAdminPin = 26;
+const int remoteUserPin = 1; // GPIO pin the remote is sending a signal to
+const int remoteAdminPin = 14;
 int remoteUserStatus = 0;
 int remoteAdminStatus = 0;
 
@@ -41,38 +42,21 @@ unsigned long currentTime;
 bool doPrintMe = false;
 bool doPrintMe2 = false;
 
+lv_display_t *display;
+lv_indev_t *indev;
 
-static lv_disp_draw_buf_t draw_buf; // Draw buffer
-static lv_disp_drv_t disp_drv; // Display Driver
-static lv_indev_drv_t indev_drv; // Touch driver
-
-M5Display *tft;
-static lv_obj_t * kb;
-
-void tft_lv_initialization() {
-    M5.begin();
-    lv_init();
-    static lv_color_t buf1[(displayHorizonal * displayVertical) / 10];  // Declare a buffer for 1/10 screen siz
-
-    // Initialize `disp_buf` display buffer with the buffer(s).
-    lv_disp_draw_buf_init(&draw_buf, buf1, NULL, (LV_HOR_RES_MAX * LV_VER_RES_MAX) / 10);
-
-    tft = &M5.Lcd;
-}
+static lv_draw_buf_t *draw_buf1;
 
 // Display flushing
-void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
+void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     uint32_t w = (area->x2 - area->x1 + 1);
     uint32_t h = (area->y2 - area->y1 + 1);
 
-    tft->startWrite();
-    tft->setAddrWindow(area->x1, area->y1, w, h);
-    tft->pushColors((uint16_t *)&color_p->full, w * h, true);
-    tft->endWrite();
-
+    lv_draw_sw_rgb565_swap(px_map, w*h);
+    M5.Display.pushImageDMA<uint16_t>(area->x1, area->y1, w, h, (uint16_t *)px_map);
     lv_disp_flush_ready(disp);
 }
-
+/*
 void init_disp_driver() {
     lv_disp_drv_init(&disp_drv);  // Basic initialization
 
@@ -84,61 +68,77 @@ void init_disp_driver() {
     lv_disp_drv_register(&disp_drv);                   // Finally register the driver
     lv_disp_set_bg_color(NULL, lv_color_hex3(0x000));  // Set default background color to black
 }
+*/
 
-void my_touchpad_read(lv_indev_drv_t * drv, lv_indev_data_t * data)
+uint32_t my_tick_function() {
+    return(esp_timer_get_time() / 1000LL);
+}
+
+void my_touchpad_read(lv_indev_t * drv, lv_indev_data_t * data) {
+   M5.update();
+   auto count = M5.Touch.getCount();
+   if (count == 0) {
+       data->state = LV_INDEV_STATE_RELEASED;
+   } else {
+       auto touch = M5.Touch.getDetail(0);
+       data->state = LV_INDEV_STATE_PRESSED;
+       data->point.x = touch.x;
+       data->point.y = touch.y;
+   }
+}
+
+static void event_cb(lv_event_t *e)
 {
-    if(!touch_disabled){
-        TouchPoint_t pos = M5.Touch.getPressPoint();
-        bool touched = pos.x != -1;
+    lv_event_code_t code = lv_event_get_code(e);
+    lv_obj_t *label = reinterpret_cast<lv_obj_t *>(lv_event_get_user_data(e));
 
-        if(!touched) {
-            data->state = LV_INDEV_STATE_RELEASED;
-        } else {
-            if (M5.BtnA.wasPressed()){  // tab 1 : A Button
-                Serial.println("ButtonA");
-                data->point.x = 80; data->point.y = 220; // mouse position x,y
-                data->state =LV_INDEV_STATE_PR; M5.update();
-            } else if (M5.BtnB.wasPressed()){  // tab 2 : B Button
-                Serial.println("ButtonB");
-                data->point.x = 160; data->point.y = 220;
-                data->state =LV_INDEV_STATE_PR; M5.update();
-            } else if (M5.BtnC.wasPressed()){  // tab 3 : C Button
-                Serial.println("ButtonC");
-                data->point.x = 270; data->point.y = 220;
-                data->state =LV_INDEV_STATE_PR; M5.update();
-            } else {
-                data->state = LV_INDEV_STATE_PRESSED;
-                data->point.x = pos.x;
-                data->point.y = pos.y;
-            }
-        }
+    switch (code)
+    {
+        case LV_EVENT_PRESSED:
+            lv_label_set_text(label, "The last button event:\nLV_EVENT_PRESSED");
+            break;
+        case LV_EVENT_CLICKED:
+            lv_label_set_text(label, "The last button event:\nLV_EVENT_CLICKED");
+            break;
+        case LV_EVENT_LONG_PRESSED:
+            lv_label_set_text(label, "The last button event:\nLV_EVENT_LONG_PRESSED");
+            break;
+        case LV_EVENT_LONG_PRESSED_REPEAT:
+            lv_label_set_text(label, "The last button event:\nLV_EVENT_LONG_PRESSED_REPEAT");
+            break;
+        default:
+            break;
     }
 }
 
-void init_touch_driver() {
-    lv_disp_drv_register(&disp_drv);
-
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = my_touchpad_read;
-    lv_indev_t * my_indev = lv_indev_drv_register(&indev_drv);  // register
-}
-
 void setup() {
+    auto cfg = M5.config();
     M5.begin();
-    //M5.Axp.SetBusPowerMode(1);+
+    //M5.Axp.SetBusPowerMode(1);
     pinMode(remoteUserPin, INPUT);
     pinMode(remoteAdminPin, INPUT);
     pinMode(motorPin1, OUTPUT);
     pinMode(motorPin2, OUTPUT);
-    tft_lv_initialization();
-    init_disp_driver();
-    init_touch_driver();
+    M5.Display.setEpdMode(epd_mode_t::epd_fast);
+    if (M5.Display.width() < M5.Display.height()) {
+        M5.Display.setRotation(M5.Display.getRotation() ^ 1);
+    }
+    lv_init();
+    lv_tick_set_cb(my_tick_function);
+    display = lv_display_create(displayHorizonal, displayVertical);
+    lv_display_set_flush_cb(display, my_disp_flush);
+    static lv_color_t buf1[displayHorizonal * 15];
+    lv_display_set_buffers(display, buf1, nullptr, sizeof(buf1), LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, my_touchpad_read);
     ui_init();
     Serial.println("Setup Complete.");
 }
 
 void loop() {
+    M5.update();
     lv_task_handler();
     currentTime = millis();
     remoteUserStatus = digitalRead(remoteUserPin);

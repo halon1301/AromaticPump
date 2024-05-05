@@ -18,7 +18,7 @@ Now that I've got the safety stuff done, let's get on to the fun stuff.
 | 12V Pump	                                | Amazon	| 19.49  |
 | 12V 2A Power Adapter	                    | Amazon	| 12.99  |
 | DRV8871 DC Motor Driver(Adafruit Brand)	 | Amazon	| 26.64  |
-| Breadboard power supply RB-Dfr-115 | RobotShop	| 4.55   |
-| misc resistors | | |
+| 7-24V to 5V Buck Converter ( RB-Dfr-956) | RobotShop	| 6.94   |
+| misc resistors                           | |        |
 
 The DRV8871 was ordered from amazon as it was faster, and no other reason.

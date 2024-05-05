@@ -9,6 +9,7 @@
 #include <Arduino.h>
 #include "main.h"
 #include <remote.h>
+#include "M5Unified.h"
 
 objects_t objects;
 lv_obj_t *tick_value_change_obj;
