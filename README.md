@@ -2,7 +2,7 @@
 
 ## This device may be used in ways which can be unsafe.  I take no responsibility for unsafe usage, be smart and think with the head on your shoulders, not between your legs.
 ## DO NOT USE THIS DEVICE ALONE
-## DO NOT USE FOR VOLITILE COMPOUNDS
+## DO NOT USE WITH VOLATILE COMPOUNDS
 ## DO NOT USE WHILE INTOXICATED
 
 Now that I've got the safety stuff done, let's get on to the fun stuff.
