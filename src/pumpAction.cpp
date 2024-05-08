@@ -14,6 +14,10 @@ unsigned long runPump(int stateMap) {
     Serial.println("RUN");
     updateUIElemsOn(stateMap);
     startTimeCounter = loc_startTime;
+    runCount++;
+    if (runCountStartTime == 0) {
+        runCountStartTime = loc_startTime;
+    }
     return loc_startTime;
 }
 

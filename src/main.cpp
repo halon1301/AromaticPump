@@ -6,7 +6,6 @@
 #include "ui/ui.h"
 #include "main.h"
 #include <pumpAction.h>
-//#include <AXP192.h>
 #include "remote.h"
 #include <esp_timer.h>
 
@@ -27,8 +26,12 @@ unsigned long maxSleepTimer = 120; // high sleep timer between runs (if admin ov
 int adminMax = 3; // number of presses the admin button has before it's ignored
 unsigned long adminRuntimer = 10; // number of seconds the admin button allows runtime for over the run timer
 int adminUse = 0; // used as a counter for usage times
+int runCount = 0; // determine the number of runs in a period of elapsed time
+int runCountTimer = 300; // The period of time passed when the runCount gets reset
+unsigned long runCountStartTime = 0; // The millis() time the counter increments above 0, so run time can be tracked
+unsigned long runCountElapsedTime = 0; // The elapsed millis() of the run time in the runCountTimer
+int runCountMaxTime = 200; // The maximum amount of time in the runCountTimer allowed to run. When hit, will lockout until runCountTimer is passed.
 
-bool touch_disabled = false;
 unsigned int countdownTimer = 30;
 bool runAllowed = true;
 bool runstate = false;
@@ -38,13 +41,8 @@ unsigned long lastTime = 0;
 unsigned long sleepStartTime = 0;
 unsigned long currentTime;
 
-// Debugging vars
-bool doPrintMe = false;
-bool doPrintMe2 = false;
-
 lv_display_t *display;
 lv_indev_t *indev;
-
 static lv_draw_buf_t *draw_buf1;
 
 // Display flushing
@@ -56,19 +54,6 @@ void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     M5.Display.pushImageDMA<uint16_t>(area->x1, area->y1, w, h, (uint16_t *)px_map);
     lv_disp_flush_ready(disp);
 }
-/*
-void init_disp_driver() {
-    lv_disp_drv_init(&disp_drv);  // Basic initialization
-
-    disp_drv.flush_cb = my_disp_flush;  // Set your driver function
-    disp_drv.draw_buf = &draw_buf;      // Assign the buffer to the display
-    disp_drv.hor_res = LV_HOR_RES_MAX;  // Set the horizontal resolution of the display
-    disp_drv.ver_res = LV_VER_RES_MAX;  // Set the vertical resolution of the display
-
-    lv_disp_drv_register(&disp_drv);                   // Finally register the driver
-    lv_disp_set_bg_color(NULL, lv_color_hex3(0x000));  // Set default background color to black
-}
-*/
 
 uint32_t my_tick_function() {
     return(esp_timer_get_time() / 1000LL);
@@ -114,7 +99,6 @@ static void event_cb(lv_event_t *e)
 void setup() {
     auto cfg = M5.config();
     M5.begin();
-    //M5.Axp.SetBusPowerMode(1);
     pinMode(remoteUserPin, INPUT);
     pinMode(remoteAdminPin, INPUT);
     pinMode(motorPin1, OUTPUT);
@@ -174,6 +158,8 @@ void loop() {
      * if admin has been fully used, and the runtime has been exceeded: sleep for maxSleepTimer
      * if admin hasn't been fully used, but runtime exceeded, BUT max sleep hasn't been reached: allow run to max admin
      * if admin hasn't been fully used, but runtime exceeded, but max sleep reached: reset everything
+     *
+     * On top of the above, we also need to check the runCountTimer to make sure
     */
     if (adminUse == adminMax and currentTime - startTime >= runtimer * 1000 and runstate and runAllowed) {
         Serial.print("runtime exceeded, adminUse max, sleeping for max sleep time- ");

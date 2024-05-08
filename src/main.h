@@ -8,3 +8,7 @@ extern bool runAllowed;
 extern bool runstate;
 extern int adminMax;
 extern int adminUse;
+extern int runCount;
+extern int runCountTimer;
+extern int runCountMaxTime;
+extern unsigned long runCountStartTime;
