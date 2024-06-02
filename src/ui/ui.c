@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "images.h"
+#include "main.h"
 
 static int16_t currentScreen = -1;
 
@@ -43,21 +44,27 @@ void updateUIElemsOn(int stateMap) {
     switch (stateMap) {
         case 0:
             lv_label_set_text(objects.lbl_state_txt, "On");
+            lv_label_set_text_fmt(objects.lbl_flow_cur_rate, "%d", flowRate);
             break;
         case 1:
-            lv_label_set_text(objects.lbl_state_txt, "User");
+            lv_label_set_text(objects.lbl_state_txt, "Usr");
+            lv_label_set_text_fmt(objects.lbl_flow_cur_rate, "%d", flowRate);
             break;
         case 2:
             lv_label_set_text(objects.lbl_state_txt, "Dm");
             break;
         default:
             lv_label_set_text(objects.lbl_state_txt, "On");
+            lv_label_set_text_fmt(objects.lbl_flow_cur_rate, "%d", flowRate);
     }
     lv_label_set_text(objects.lbl_btn_on_off, "Off");
+}
+
+void updateFlowRateElems() {
+    lv_label_set_text_fmt(objects.lbl_flow_cur_rate, "%d", flowRate);
 }
 
 void resetUIElems() {
     lv_label_set_text(objects.lbl_state_txt, "Off");
     lv_label_set_text(objects.lbl_btn_on_off, "On");
-    lv_label_set_text(objects.lbl_override_use_cnt, "0");
 }

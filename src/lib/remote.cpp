@@ -6,6 +6,7 @@
 #include "main.h"
 #include "remote.h"
 #include "ui/ui.h"
+#include "flow.h"
 
 
 void remote_user_control() {
@@ -22,7 +23,6 @@ void adminBtnUse() {
     adminUse++;
     countdownTimer = countdownTimer + 10;
     runtimer = runtimer + adminRuntimer;
-    lv_label_set_text_fmt(objects.lbl_override_use_cnt, "%d", adminUse);
 }
 
 

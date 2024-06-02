@@ -1,45 +1,46 @@
-#include "M5Unified.h"
+#include <M5Unified.h>
 #include <Arduino.h>
 #include <lvgl.h>
 #include <Wire.h>
-#include <SPI.h>
 #include "ui/ui.h"
 #include "main.h"
-#include <pumpAction.h>
-#include "remote.h"
+#include "lib/pumpAction.h"
+#include "lib/remote.h"
 #include <esp_timer.h>
+#include "lib/flow.h"
 
 const int displayHorizonal = 320;
 const int displayVertical = 240;
 
-
-const int remoteUserPin = 1; // GPIO pin the remote is sending a signal to
-const int remoteAdminPin = 14;
+const int remoteUserPin = 26; // Button B
+const int flowUpPin = 25; // Button C
+const int flowDownPin = 35; // Button D
 int remoteUserStatus = 0;
-int remoteAdminStatus = 0;
+int flowUpStatus = 0;
+int flowDownStatus = 0;
+
+// The percentage of flow rate.  This is directly related to the PWM value passed on PIN2 of the motor driver, it starts and 75% and goes up or down from there
+// 0 is 0%, 255 is 100%
+unsigned int flowRate = 75; // 0.75 * 255 = 192
+unsigned int flowRateAdj = 5; // The percentage the flow rate will change by
 
 
-const unsigned long allowedRunTime = 30; // This is used to reset the runtimer and set the runtimer
-unsigned long runtimer = allowedRunTime; // 30 seconds to run (Adjusted by the admin runtimer)
-unsigned long minSleepTimer = 30; // low end of the sleep timer between runs (if admin override hasn't been used)
-unsigned long maxSleepTimer = 120; // high sleep timer between runs (if admin override has been used fully)
-int adminMax = 3; // number of presses the admin button has before it's ignored
-unsigned long adminRuntimer = 10; // number of seconds the admin button allows runtime for over the run timer
-int adminUse = 0; // used as a counter for usage times
-int runCount = 0; // determine the number of runs in a period of elapsed time
-int runCountTimer = 300; // The period of time passed when the runCount gets reset
-unsigned long runCountStartTime = 0; // The millis() time the counter increments above 0, so run time can be tracked
-unsigned long runCountElapsedTime = 0; // The elapsed millis() of the run time in the runCountTimer
-int runCountMaxTime = 200; // The maximum amount of time in the runCountTimer allowed to run. When hit, will lockout until runCountTimer is passed.
+// Safety Timing
+unsigned long runTimer = 300; // The period of time passed when the runLimit gets reset
+unsigned long runMaxTime = 240; // The maximum amount of time in runTimer the pump can run, after this, it locks out until runTimer passes
+unsigned long runTotalTime; // Total run time counter
 
 unsigned int countdownTimer = 30;
 bool runAllowed = true;
 bool runstate = false;
 
+
+unsigned long initialStartTime = 0;
 unsigned long startTime;
 unsigned long lastTime = 0;
 unsigned long sleepStartTime = 0;
 unsigned long currentTime;
+unsigned long runElapsedTime = 0;
 
 lv_display_t *display;
 lv_indev_t *indev;
@@ -98,9 +99,10 @@ static void event_cb(lv_event_t *e)
 
 void setup() {
     auto cfg = M5.config();
-    M5.begin();
+    M5.begin(cfg);
     pinMode(remoteUserPin, INPUT);
-    pinMode(remoteAdminPin, INPUT);
+    pinMode(flowUpPin, INPUT);
+    pinMode(flowDownPin, INPUT);
     pinMode(motorPin1, OUTPUT);
     pinMode(motorPin2, OUTPUT);
     M5.Display.setEpdMode(epd_mode_t::epd_fast);
@@ -118,7 +120,8 @@ void setup() {
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, my_touchpad_read);
     ui_init();
-    Serial.println("Setup Complete.");
+    Serial.println("Initialization complete");
+
 }
 
 void loop() {
@@ -126,104 +129,62 @@ void loop() {
     lv_task_handler();
     currentTime = millis();
     remoteUserStatus = digitalRead(remoteUserPin);
-    remoteAdminStatus = digitalRead(remoteAdminPin);
+    flowUpStatus = digitalRead(flowUpPin);
+    flowDownStatus = digitalRead(flowDownPin);
 
-    if (runAllowed) {
-        if (runstate) {
-            if (remoteUserStatus == 1) {
-                sleepStartTime = stopPump();
-                delay(1000);
-            } else if (remoteAdminStatus == 1 and adminUse < adminMax) {
-                // We add 10s to a max of an additional 30s
-                adminBtnUse();
-                delay(1000);
-            }
-        } else {
-            if (remoteUserStatus == 1) {
-                startTime = runPump(1);
-                delay(1000);
-            } else if (remoteAdminStatus == 1) {
-                startTime = runPump(2);
-                delay(1000);
-            }
 
-        } /*else if (remoteAdminStatus == 1) {
-            startTime = runPump(2);
-            adminBtnUse();
-        }*/
-    }
 
     /*
-     * Logic:
-     * if admin has been fully used, and the runtime has been exceeded: sleep for maxSleepTimer
-     * if admin hasn't been fully used, but runtime exceeded, BUT max sleep hasn't been reached: allow run to max admin
-     * if admin hasn't been fully used, but runtime exceeded, but max sleep reached: reset everything
-     *
-     * On top of the above, we also need to check the runCountTimer to make sure
-    */
-    if (adminUse == adminMax and currentTime - startTime >= runtimer * 1000 and runstate and runAllowed) {
-        Serial.print("runtime exceeded, adminUse max, sleeping for max sleep time- ");
-        sleepStartTime = stopPump();
-        updateUIElemsOff();
-        startTime = 0;
-        adminUse = 0;
-        runtimer = allowedRunTime;
-        runAllowed = false;
-    } else if (adminUse < adminMax and currentTime - startTime >= runtimer * 1000 and runstate and runAllowed) {
-        Serial.print("runtime exceeded, adminUse under max, no sleep required  - Current Time");
-        sleepStartTime = stopPump();
-        updateUIElemsOff();
-        runtimer = allowedRunTime; // timer can run again
-        runAllowed = true;
-    } else if (adminUse == adminMax and currentTime - sleepStartTime >= maxSleepTimer * 1000 and !runstate) {
-        Serial.println("sleep time exceeded, admin use max, reset");
-        startTime = 0;
-        sleepStartTime = 0;
-        adminUse = 0;
-        runtimer = allowedRunTime;
-        runAllowed = true;
-    } else if (currentTime - sleepStartTime >= maxSleepTimer * 1000 and !runstate and !runAllowed) {
-        Serial.println("sleep time exceeded, admin use max, reset");
-        startTime = 0;
-        sleepStartTime = 0;
-        adminUse = 0;
-        runtimer = allowedRunTime;
-        runAllowed = true;
-        resetUIElems();
-    } else if (currentTime - sleepStartTime >= maxSleepTimer * 1000 and !runstate and runAllowed) {
-        startTime = 0;
-        sleepStartTime = 0;
-        adminUse = 0;
-        runtimer = allowedRunTime;
-        runAllowed = true;
+     * if pump has run for runMaxTime in the runTimer, then it needs to shut off and be locked out until the runTimer elapses
+     */
+
+    if (runstate) {
+        if (runElapsedTime * 1000 <= runMaxTime and (currentTime - initialStartTime) * 1000 <= runTimer) {
+            if (runAllowed) {
+                if (remoteUserStatus == 1) {
+                    sleepStartTime = stopPump();
+                    delay(500);
+                }
+                if (flowUpStatus == 1) {
+                    Serial.println("FlowUpRemote");
+                    flowUpdateUp();
+                    delay(500);
+                }
+                if (flowDownStatus == 1) {
+                    Serial.println("FlowDownRemote");
+                    flowUpdateDown();
+                    delay(500);
+                }
+                if (currentTime - startTimeCounter >= 1000) { // 1 sec has passed
+                    if (countdownTimer != 0) {
+                        countdownTimer--;
+                        lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
+                        startTimeCounter = currentTime;
+                    } else {
+                        sleepStartTime = stopPump();
+                        lv_label_set_text(objects.lbl_state_txt, "Off");
+                        lv_label_set_text(objects.lbl_btn_on_off, "On");
+                        startTimeCounter = 0;
+                    }
+                }
+            }
+        } else {
+            stopPump();
+            runAllowed = false;
+        }
     } else {
-        //if (currentTime - startTime >= 1000) {
-        //    Serial.println(currentTime - startTime);
-        //}
-    }
-
-
-    if (!runstate) {
-        countdownTimer = 30;
-        startTimeCounter = 0;
-        lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
-    }
-
-    if (startTimeCounter != 0) {
-        if (currentTime - startTimeCounter >= 1000) { // 1 sec has passed
-            if (countdownTimer != 0) {
-                countdownTimer--;
-                lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
-                startTimeCounter = currentTime;
+        if ((currentTime - initialStartTime) * 1000 >= runTimer or runAllowed) {
+            if (remoteUserStatus == 1) {
+                startTime = runPump(1);
+                delay(500);
             } else {
-                sleepStartTime = stopPump();
-                lv_label_set_text(objects.lbl_state_txt, "Off");
-                lv_label_set_text(objects.lbl_btn_on_off, "On");
+                countdownTimer = 30;
                 startTimeCounter = 0;
+                lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
             }
         }
     }
-
     delay(5);
+
 }
 

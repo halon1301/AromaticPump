@@ -5,10 +5,11 @@
 #include "vars.h"
 #include "styles.h"
 #include "ui.h"
-#include <pumpAction.h>
+#include "lib/pumpAction.h"
 #include <Arduino.h>
 #include "main.h"
-#include <remote.h>
+#include "lib/remote.h"
+#include "lib/flow.h"
 #include "M5Unified.h"
 
 objects_t objects;
@@ -33,13 +34,21 @@ static void on_btnRunStatePress(lv_event_t *e) {
     }
 }
 
-static void on_plusTenPress(lv_event_t *e) {
+static void on_btnFlowUp(lv_event_t *e) {
     lv_event_code_t event = lv_event_get_code(e);
     if (event == LV_EVENT_PRESSED) {
-        if (runAllowed) {
-            if (runstate and adminUse < adminMax) {
-                adminBtnUse();
-            }
+        // Check current flow rate, if it's 100% it can't go up any higher
+        if (runstate) {
+            flowUpdateUp();
+        }
+    }
+}
+
+static void on_btnFlowDown(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    if (event == LV_EVENT_PRESSED) {
+        if (runstate) {
+            flowUpdateDown();
         }
     }
 }
@@ -86,7 +95,7 @@ void create_screen_main() {
             lv_obj_t *obj = lv_obj_create(parent_obj);
             objects.pnl_state = obj;
             lv_obj_set_pos(obj, 6, 45);
-            lv_obj_set_size(obj, 130, 85);
+            lv_obj_set_size(obj, 109, 85);
             lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_set_style_bg_color(obj, lv_color_hex(0xff808080), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
@@ -104,8 +113,8 @@ void create_screen_main() {
             // pnlTime
             lv_obj_t *obj = lv_obj_create(parent_obj);
             objects.pnl_time = obj;
-            lv_obj_set_pos(obj, 187, 41);
-            lv_obj_set_size(obj, 127, 89);
+            lv_obj_set_pos(obj, 119, 45);
+            lv_obj_set_size(obj, 86, 85);
             lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_set_style_bg_color(obj, lv_color_hex(0xff808080), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
@@ -113,62 +122,26 @@ void create_screen_main() {
             // lblTime
             lv_obj_t *obj = lv_label_create(parent_obj);
             objects.lbl_time = obj;
-            lv_obj_set_pos(obj, 192, 25);
+            lv_obj_set_pos(obj, 118, 25);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_label_set_text(obj, "Time:");
             lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
-            // pnlOverrideUse
-            lv_obj_t *obj = lv_obj_create(parent_obj);
-            objects.pnl_override_use = obj;
-            lv_obj_set_pos(obj, 238, 150);
-            lv_obj_set_size(obj, 46, 27);
-            lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-            lv_obj_set_style_bg_color(obj, lv_color_hex(0xff808080), LV_PART_MAIN | LV_STATE_DEFAULT);
-        }
-        {
-            // lblOverrideUse
-            lv_obj_t *obj = lv_label_create(parent_obj);
-            objects.lbl_override_use = obj;
-            lv_obj_set_pos(obj, 229, 134);
-            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_label_set_text(obj, "+10s Use:");
-            lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
-        }
-        {
-            // btnOverride
+            // btnFlowDown
             lv_obj_t *obj = lv_btn_create(parent_obj);
-            objects.btn_override = obj;
-            lv_obj_set_pos(obj, 221, 184);
-            lv_obj_set_size(obj, 79, 50);
-            lv_obj_add_event_cb(obj, on_plusTenPress, LV_EVENT_ALL, 0);
+            objects.btn_flow_down = obj;
+            lv_obj_set_pos(obj, 238, 184);
+            lv_obj_set_size(obj, 65, 50);
+            lv_obj_add_event_cb(obj, on_btnFlowDown, LV_EVENT_ALL, 0);
             lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
             lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-        }
-        {
-            // lbl_btnOverride
-            lv_obj_t *obj = lv_label_create(parent_obj);
-            objects.lbl_btn_override = obj;
-            lv_obj_set_pos(obj, 246, 203);
-            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_label_set_text(obj, "+10s");
-            lv_obj_set_style_text_color(obj, lv_color_hex(0xff000000), LV_PART_MAIN | LV_STATE_DEFAULT);
-        }
-        {
-            // lblOverrideUseCnt
-            lv_obj_t *obj = lv_label_create(parent_obj);
-            objects.lbl_override_use_cnt = obj;
-            lv_obj_set_pos(obj, 257, 156);
-            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_label_set_text(obj, "0");
-            lv_obj_set_style_text_color(obj, lv_color_hex(0xff00ffea), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
             // lblTimeCnt
             lv_obj_t *obj = lv_label_create(parent_obj);
             objects.lbl_time_cnt = obj;
-            lv_obj_set_pos(obj, 221, 60);
+            lv_obj_set_pos(obj, 133, 62);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_label_set_text(obj, "30");
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_48, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -183,6 +156,61 @@ void create_screen_main() {
             lv_label_set_text(obj, "Off");
             lv_obj_set_style_text_color(obj, lv_color_hex(0xff5bff00), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_text_font(obj, &lv_font_montserrat_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            // btnFlowUp
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_flow_up = obj;
+            lv_obj_set_pos(obj, 238, 45);
+            lv_obj_set_size(obj, 65, 50);
+            lv_obj_add_event_cb(obj, on_btnFlowUp, LV_EVENT_ALL, 0);
+            lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+            lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+        }
+        {
+            // lblFlowRate
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.lbl_flow_rate = obj;
+            lv_obj_set_pos(obj, 223, 22);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text(obj, "Flow Rate %:");
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            // pnlFlowRateStatus
+            lv_obj_t *obj = lv_textarea_create(parent_obj);
+            objects.pnl_flow_rate_status = obj;
+            lv_obj_set_pos(obj, 226, 104);
+            lv_obj_set_size(obj, 88, 70);
+            lv_textarea_set_max_length(obj, 128);
+            lv_textarea_set_one_line(obj, false);
+            lv_textarea_set_password_mode(obj, false);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0xff808080), LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            // lblFlowUp
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.lbl_flow_up = obj;
+            lv_obj_set_pos(obj, 260, 62);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text(obj, "Up");
+        }
+        {
+            // lblFlowDown
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.lbl_flow_down = obj;
+            lv_obj_set_pos(obj, 249, 201);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text(obj, "Down");
+        }
+        {
+            // lblFlowCurRate
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.lbl_flow_cur_rate = obj;
+            lv_obj_set_pos(obj, 233, 114);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text_fmt(obj, "%d", flowRate);
+            lv_obj_set_style_text_font(obj, &lv_font_montserrat_44, LV_PART_MAIN | LV_STATE_DEFAULT);
         }
     }
 }

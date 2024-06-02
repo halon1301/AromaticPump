@@ -7,3 +7,6 @@ extern unsigned long runPump(int stateMap);
 
 extern unsigned long stopPump();
 
+extern void updatePumpFlow();
+
+int calcFlowRateNumber(unsigned int loc_flowRate);
