@@ -9,18 +9,20 @@ extern "C" {
 
 typedef struct _objects_t {
     lv_obj_t *main;
-    lv_obj_t *btn_override;
+    lv_obj_t *btn_flow_down;
+    lv_obj_t *btn_flow_up;
     lv_obj_t *btn_run_state;
     lv_obj_t *lbl_btn_on_off;
-    lv_obj_t *lbl_btn_override;
-    lv_obj_t *lbl_override_use;
-    lv_obj_t *lbl_override_use_cnt;
+    lv_obj_t *lbl_flow_cur_rate;
+    lv_obj_t *lbl_flow_down;
+    lv_obj_t *lbl_flow_rate;
+    lv_obj_t *lbl_flow_up;
     lv_obj_t *lbl_state;
     lv_obj_t *lbl_state_txt;
     lv_obj_t *lbl_time;
     lv_obj_t *lbl_time_cnt;
     lv_obj_t *lbl_title;
-    lv_obj_t *pnl_override_use;
+    lv_obj_t *pnl_flow_rate_status;
     lv_obj_t *pnl_state;
     lv_obj_t *pnl_time;
 } objects_t;

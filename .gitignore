@@ -1,1 +1,10 @@
 .pio
+.idea/*
+
+PCBLayout/popperpump/popperPump/#auto_saved_files#
+
+PCBLayout/popperpump/popperPump/fp-info-cache
+
+*.zip
+
+*.lck
