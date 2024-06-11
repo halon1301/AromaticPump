@@ -13,8 +13,8 @@ const int displayHorizonal = 320;
 const int displayVertical = 240;
 
 const int remoteUserPin = 26; // Button B
-const int flowUpPin = 25; // Button C
-const int flowDownPin = 35; // Button D
+const int flowUpPin = 35; // Button C
+const int flowDownPin = 25; // Button D
 int remoteUserStatus = 0;
 int flowUpStatus = 0;
 int flowDownStatus = 0;
@@ -139,49 +139,42 @@ void loop() {
      */
 
     if (runstate) {
-        if (runElapsedTime * 1000 <= runMaxTime and (currentTime - initialStartTime) * 1000 <= runTimer) {
-            if (runAllowed) {
-                if (remoteUserStatus == 1) {
+        if (runAllowed) {
+            if (remoteUserStatus == 1) {
+                sleepStartTime = stopPump();
+                delay(500);
+            }
+            if (flowUpStatus == 1) {
+                Serial.println("FlowUpRemote");
+                flowUpdateUp();
+                delay(500);
+            }
+            if (flowDownStatus == 1) {
+                Serial.println("FlowDownRemote");
+                flowUpdateDown();
+                delay(500);
+            }
+            if (currentTime - startTimeCounter >= 1000) { // 1 sec has passed
+                if (countdownTimer != 0) {
+                    countdownTimer--;
+                    lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
+                    startTimeCounter = currentTime;
+                } else {
                     sleepStartTime = stopPump();
-                    delay(500);
-                }
-                if (flowUpStatus == 1) {
-                    Serial.println("FlowUpRemote");
-                    flowUpdateUp();
-                    delay(500);
-                }
-                if (flowDownStatus == 1) {
-                    Serial.println("FlowDownRemote");
-                    flowUpdateDown();
-                    delay(500);
-                }
-                if (currentTime - startTimeCounter >= 1000) { // 1 sec has passed
-                    if (countdownTimer != 0) {
-                        countdownTimer--;
-                        lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
-                        startTimeCounter = currentTime;
-                    } else {
-                        sleepStartTime = stopPump();
-                        lv_label_set_text(objects.lbl_state_txt, "Off");
-                        lv_label_set_text(objects.lbl_btn_on_off, "On");
-                        startTimeCounter = 0;
-                    }
+                    lv_label_set_text(objects.lbl_state_txt, "Off");
+                    lv_label_set_text(objects.lbl_btn_on_off, "On");
+                    startTimeCounter = 0;
                 }
             }
-        } else {
-            stopPump();
-            runAllowed = false;
         }
     } else {
-        if ((currentTime - initialStartTime) * 1000 >= runTimer or runAllowed) {
-            if (remoteUserStatus == 1) {
-                startTime = runPump(1);
-                delay(500);
-            } else {
-                countdownTimer = 30;
-                startTimeCounter = 0;
-                lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
-            }
+        if (remoteUserStatus == 1) {
+            startTime = runPump(1);
+            delay(500);
+        } else {
+            countdownTimer = 30;
+            startTimeCounter = 0;
+            lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
         }
     }
     delay(5);
