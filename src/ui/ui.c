@@ -23,12 +23,12 @@ static const void *getLvglImageByName(const char *name) {
 void loadScreen(enum ScreensEnum screenId) {
     currentScreen = screenId - 1;
     lv_obj_t *screen = getLvglObjectFromIndex(currentScreen);
-    lv_scr_load_anim(screen, LV_SCR_LOAD_ANIM_FADE_IN, 200, 0, false);
+    lv_scr_load_anim(screen, LV_SCR_LOAD_ANIM_FADE_IN, 200, 0, true);
 }
 
 void ui_init() {
     create_screens();
-    loadScreen(SCREEN_ID_MAIN);
+    loadScreen(SCREEN_ID_DISCLAIMER);
 }
 
 void ui_tick() {

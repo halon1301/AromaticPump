@@ -13,8 +13,8 @@ const int displayHorizonal = 320;
 const int displayVertical = 240;
 
 const int remoteUserPin = 26; // Button B
-const int flowUpPin = 25; // Button C
-const int flowDownPin = 35; // Button D
+const int flowUpPin = 35; // Button C
+const int flowDownPin = 25; // Button D
 int remoteUserStatus = 0;
 int flowUpStatus = 0;
 int flowDownStatus = 0;
@@ -33,8 +33,9 @@ unsigned long runTotalTime; // Total run time counter
 unsigned int countdownTimer = 30;
 bool runAllowed = true;
 bool runstate = false;
+bool boot = true; // If the m5stack has just booted, this is to capture the disclaimer timeout
 
-
+unsigned long bootTime = 0;
 unsigned long initialStartTime = 0;
 unsigned long startTime;
 unsigned long lastTime = 0;
@@ -121,6 +122,7 @@ void setup() {
     lv_indev_set_read_cb(indev, my_touchpad_read);
     ui_init();
     Serial.println("Initialization complete");
+    bootTime = millis();
 
 }
 
@@ -128,18 +130,30 @@ void loop() {
     M5.update();
     lv_task_handler();
     currentTime = millis();
-    remoteUserStatus = digitalRead(remoteUserPin);
-    flowUpStatus = digitalRead(flowUpPin);
-    flowDownStatus = digitalRead(flowDownPin);
+    if (boot) {
+      if (currentTime - bootTime >= 1000) {
+          if (countdownTimer != 0) {
+              countdownTimer--;
+              lv_label_set_text_fmt(objects.lbl_accept_btn, "%d", countdownTimer);
+              bootTime = currentTime;
+          } else {
+               // Timer has runout
+               boot = false;
+               lv_label_set_text(objects.lbl_accept_btn, "I Will Be Smart");
+          }
+      }
+    } else {
+        remoteUserStatus = digitalRead(remoteUserPin);
+        flowUpStatus = digitalRead(flowUpPin);
+        flowDownStatus = digitalRead(flowDownPin);
 
 
 
-    /*
-     * if pump has run for runMaxTime in the runTimer, then it needs to shut off and be locked out until the runTimer elapses
-     */
+        /*
+         * if pump has run for runMaxTime in the runTimer, then it needs to shut off and be locked out until the runTimer elapses
+         */
 
-    if (runstate) {
-        if (runElapsedTime * 1000 <= runMaxTime and (currentTime - initialStartTime) * 1000 <= runTimer) {
+        if (runstate) {
             if (runAllowed) {
                 if (remoteUserStatus == 1) {
                     sleepStartTime = stopPump();
@@ -169,11 +183,6 @@ void loop() {
                 }
             }
         } else {
-            stopPump();
-            runAllowed = false;
-        }
-    } else {
-        if ((currentTime - initialStartTime) * 1000 >= runTimer or runAllowed) {
             if (remoteUserStatus == 1) {
                 startTime = runPump(1);
                 delay(500);
