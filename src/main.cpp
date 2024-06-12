@@ -33,8 +33,9 @@ unsigned long runTotalTime; // Total run time counter
 unsigned int countdownTimer = 30;
 bool runAllowed = true;
 bool runstate = false;
+bool boot = true; // If the m5stack has just booted, this is to capture the disclaimer timeout
 
-
+unsigned long bootTime = 0;
 unsigned long initialStartTime = 0;
 unsigned long startTime;
 unsigned long lastTime = 0;
@@ -121,6 +122,7 @@ void setup() {
     lv_indev_set_read_cb(indev, my_touchpad_read);
     ui_init();
     Serial.println("Initialization complete");
+    bootTime = millis();
 
 }
 
@@ -128,53 +130,67 @@ void loop() {
     M5.update();
     lv_task_handler();
     currentTime = millis();
-    remoteUserStatus = digitalRead(remoteUserPin);
-    flowUpStatus = digitalRead(flowUpPin);
-    flowDownStatus = digitalRead(flowDownPin);
+    if (boot) {
+      if (currentTime - bootTime >= 1000) {
+          if (countdownTimer != 0) {
+              countdownTimer--;
+              lv_label_set_text_fmt(objects.lbl_accept_btn, "%d", countdownTimer);
+              bootTime = currentTime;
+          } else {
+               // Timer has runout
+               boot = false;
+               lv_label_set_text(objects.lbl_accept_btn, "I Will Be Smart");
+          }
+      }
+    } else {
+        remoteUserStatus = digitalRead(remoteUserPin);
+        flowUpStatus = digitalRead(flowUpPin);
+        flowDownStatus = digitalRead(flowDownPin);
 
 
 
-    /*
-     * if pump has run for runMaxTime in the runTimer, then it needs to shut off and be locked out until the runTimer elapses
-     */
+        /*
+         * if pump has run for runMaxTime in the runTimer, then it needs to shut off and be locked out until the runTimer elapses
+         */
 
-    if (runstate) {
-        if (runAllowed) {
-            if (remoteUserStatus == 1) {
-                sleepStartTime = stopPump();
-                delay(500);
-            }
-            if (flowUpStatus == 1) {
-                Serial.println("FlowUpRemote");
-                flowUpdateUp();
-                delay(500);
-            }
-            if (flowDownStatus == 1) {
-                Serial.println("FlowDownRemote");
-                flowUpdateDown();
-                delay(500);
-            }
-            if (currentTime - startTimeCounter >= 1000) { // 1 sec has passed
-                if (countdownTimer != 0) {
-                    countdownTimer--;
-                    lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
-                    startTimeCounter = currentTime;
-                } else {
+        if (runstate) {
+            if (runAllowed) {
+                if (remoteUserStatus == 1) {
                     sleepStartTime = stopPump();
-                    lv_label_set_text(objects.lbl_state_txt, "Off");
-                    lv_label_set_text(objects.lbl_btn_on_off, "On");
-                    startTimeCounter = 0;
+                    delay(500);
+                }
+                if (flowUpStatus == 1) {
+                    Serial.println("FlowUpRemote");
+                    flowUpdateUp();
+                    delay(500);
+                }
+                if (flowDownStatus == 1) {
+                    Serial.println("FlowDownRemote");
+                    flowUpdateDown();
+                    delay(500);
+                }
+                if (currentTime - startTimeCounter >= 1000) { // 1 sec has passed
+                    if (countdownTimer != 0) {
+                        countdownTimer--;
+                        lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
+                        startTimeCounter = currentTime;
+                    } else {
+                        sleepStartTime = stopPump();
+                        lv_label_set_text(objects.lbl_state_txt, "Off");
+                        lv_label_set_text(objects.lbl_btn_on_off, "On");
+                        startTimeCounter = 0;
+                    }
                 }
             }
-        }
-    } else {
-        if (remoteUserStatus == 1) {
-            startTime = runPump(1);
-            delay(500);
         } else {
-            countdownTimer = 30;
-            startTimeCounter = 0;
-            lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
+            if (remoteUserStatus == 1) {
+                startTime = runPump(1);
+                delay(500);
+            } else {
+                countdownTimer = 30;
+                startTimeCounter = 0;
+                lv_label_set_text_fmt(objects.lbl_time_cnt, "%d", countdownTimer);
+            }
         }
     }
     delay(5);

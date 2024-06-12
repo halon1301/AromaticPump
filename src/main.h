@@ -16,3 +16,4 @@ extern unsigned long runCountStartTime;
 extern unsigned int flowRate;
 extern unsigned int flowRateAdj;
 extern unsigned long runElapsedTime;
+extern bool boot;

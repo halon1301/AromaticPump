@@ -17,6 +17,17 @@ lv_obj_t *tick_value_change_obj;
 
 unsigned long startTimeCounter = 0;
 
+static void on_btn_acceptStatePress(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    // Don't actually accept a button press for 30 sec
+
+    if (event == LV_EVENT_PRESSED) {
+        if (!boot) {
+            loadScreen(SCREEN_ID_MAIN);
+        }
+    }
+}
+
 static void on_btnRunStatePress(lv_event_t *e) {
     lv_event_code_t event = lv_event_get_code(e);
     if (event == LV_EVENT_PRESSED) {
@@ -52,6 +63,71 @@ static void on_btnFlowDown(lv_event_t *e) {
         }
     }
 }
+
+void create_screen_disclaimer() {
+    lv_obj_t *obj = lv_obj_create(0);
+    objects.disclaimer = obj;
+    lv_obj_set_pos(obj, 0, 0);
+    lv_obj_set_size(obj, 320, 240);
+    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(0xff000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    {
+        lv_obj_t *parent_obj = obj;
+        {
+            // txt_DisclaimerText
+            lv_obj_t *obj = lv_textarea_create(parent_obj);
+            objects.txt_disclaimer_text = obj;
+            lv_obj_set_pos(obj, 10, 38);
+            lv_obj_set_size(obj, 300, 163);
+            lv_textarea_set_max_length(obj, 1024);
+            lv_textarea_set_text(obj, "This device can be dangerous, it is not to be used in unsafe ways.\n- DO NOT USE WHILE INTOXICATED\n- DO NOT USE WITH DANGEROUS SUBSTANCES\n- DO NOT USE ALONE\n- BE SMART\n- YOU ARE RESPONSIBLE FOR YOUR OWN ACTIONS");
+            lv_textarea_set_one_line(obj, false);
+            lv_textarea_set_password_mode(obj, false);
+            lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0xff000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xffff0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_font(obj, &lv_font_montserrat_12, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            // btn_accept
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_accept = obj;
+            lv_obj_set_pos(obj, 84, 201);
+            lv_obj_set_size(obj, 152, 39);
+            lv_obj_add_event_cb(obj, on_btn_acceptStatePress, LV_EVENT_ALL, 0);
+            lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+            lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+            lv_obj_set_style_bg_color(obj, lv_color_hex(0xffbe0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            // lbl_AcceptBtn
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.lbl_accept_btn = obj;
+            lv_obj_set_pos(obj, 106, 213);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text(obj, "30");
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xfffefefe), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_decor(obj, LV_TEXT_DECOR_UNDERLINE, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            // lbl_Warning
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.lbl_warning = obj;
+            lv_obj_set_pos(obj, 61, 11);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text(obj, "!!!!! WARNING !!!!!");
+            lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_font(obj, &lv_font_montserrat_24, LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+    }
+}
+
+
+void tick_screen_disclaimer() {
+}
+
 
 void create_screen_main() {
     lv_obj_t *obj = lv_obj_create(0);
@@ -223,14 +299,16 @@ void create_screens() {
     lv_disp_t *dispp = lv_disp_get_default();
     lv_theme_t *theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, theme);
-    
+
+    create_screen_disclaimer();
     create_screen_main();
 }
 
 typedef void (*tick_screen_func_t)();
 
 tick_screen_func_t tick_screen_funcs[] = {
-    tick_screen_main,
+        tick_screen_disclaimer,
+        tick_screen_main,
 };
 
 void tick_screen(int screen_index) {
