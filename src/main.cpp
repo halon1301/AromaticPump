@@ -1,7 +1,6 @@
 #include <M5Unified.h>
 #include <Arduino.h>
 #include <lvgl.h>
-#include <Wire.h>
 #include "ui/ui.h"
 #include "main.h"
 #include "lib/pumpAction.h"
